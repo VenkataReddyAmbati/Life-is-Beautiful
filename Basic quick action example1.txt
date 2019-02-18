@@ -1,0 +1,40 @@
+Example-----1
+//the below code is to hide the quickaction populate layout and call the standard layout:
+<aura:component implements="force:lightningQuickActionWithoutHeader,flexipage:availableForRecordHome,force:hasRecordId" access="global" >
+                <aura:html tag="style">
+        .cuf-content {
+            padding: 0 0rem !important;
+        }
+        .slds-p-around--medium {
+            padding: 0rem !important;
+        }       
+        .slds-modal__content{
+            overflow-y:hidden !important;
+            height:unset !important;
+            max-height:unset !important;
+        }
+    </aura:html>
+    <aura:handler name ="init" value ="{!this}" action = "{!c.init}" />
+</aura:component>
+
+Javascript:++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+({
+    init : function(component, event, helper) {
+    alert('Test');
+      //   var dismissActionPanel = $A.get("e.force:closeQuickAction");
+      //  dismissActionPanel.fire();
+         window.setTimeout(
+        $A.getCallback(function() {
+            $A.get("e.force:closeQuickAction").fire();
+
+        }),10
+    );
+        var createRecordEvent = $A.get("e.force:createRecord");
+        createRecordEvent.setParams({
+            "entityApiName" : "TestProjects__c",
+            "Account__c": component.get("v.recordId")
+        });
+        createRecordEvent.fire();
+    }
+})

@@ -1,0 +1,141 @@
+Example-----2
+//the below code is to keep the quickaction populate layout for milli sec and call the standard layout:
+Component:
+
+
+<aura:component implements="force:lightningQuickActionWithoutHeader,flexipage:availableForRecordHome,force:hasRecordId" access="global" controller="SettlementSBIArrangementController" >
+  <div class="title slds-text-heading--medium"><center>New SBI Arrangement</center></div>
+    <hr/>
+<aura:handler name ="init" value ="{!this}" action = "{!c.init}" />
+</aura:component>
+
+
+
+Javascript:+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+({
+    init : function(component, event, helper) {
+        
+        //   var dismissActionPanel = $A.get("e.force:closeQuickAction");
+        //  dismissActionPanel.fire();
+        window.setTimeout(
+           $A.getCallback(function() {
+                $A.get("e.force:closeQuickAction").fire();
+                
+            }),1000
+        );
+        var rectypeid;
+        var action1=component.get('c.GetRecordTypedetails');
+        action1.setParams({
+            "asrid" : component.get('v.recordId')
+        }); 
+        action1.setCallback(this, function(response){
+           var state1 = response.getState();
+            if (state1 === "SUCCESS") {
+              rectypeid= response.getReturnValue().toString();  
+            }
+        });
+        
+$A.enqueueAction(action1);      
+        
+        var action=component.get('c.GetRecorddetails');
+        action.setParams({
+            "asrid" : component.get('v.recordId')
+        });
+        action.setCallback(this, function(response){
+            var state = response.getState();
+            if (state === "SUCCESS") {
+                // alert(response.getReturnValue()['Business_unit__c'].toString());
+                var createRecordEvent = $A.get("e.force:createRecord");
+                var bunit=response.getReturnValue()['Business_unit__c'].toString();
+                createRecordEvent.setParams({
+                    "entityApiName": "SBI_Arrangement__c",
+                    "recordTypeId" : rectypeid,
+                    "defaultFieldValues": {
+                        'Related_Agreement__c' : component.get('v.recordId'),
+                        'Business_unit_Front__c' : bunit ,    
+                        'NPS_Entity__c' : response.getReturnValue()['NPS_Legal_Entity__c'].toString(),
+                        'Physician_Group__c' :  response.getReturnValue()['Physician_Group1__c'].toString()   
+                    }
+                    
+                    
+                });
+                createRecordEvent.fire();
+            }
+            
+        });
+        $A.enqueueAction(action);
+        
+        
+    }
+    
+})
+
+
+
+Apex controller:+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+public class SettlementSBIArrangementController {
+    public static Comprehensive_Arrangement__c comprec;
+    public static ID settle_RecordTypeId;
+      @AuraEnabled
+    public static string GetRecordTypedetails(string asrid){
+        comprec=[select id,name,RecordType.name,RecordTypeId from Comprehensive_Arrangement__c where id=:asrid]; 
+       
+        if(comprec.RecordType.name=='Settlements'){
+             settle_RecordTypeId = Schema.SObjectType.SBI_Arrangement__c.getRecordTypeInfosByName().get('Settlements').getRecordTypeId();
+             return settle_RecordTypeId;
+        }
+        return null;
+        
+    }
+     @AuraEnabled
+    public static Comprehensive_Arrangement__c GetRecorddetails(string asrid){
+       if(asrid !=NULL){
+         comprec=[select id,name,Business_unit__c,Physician_Group1__c,NPS_Legal_Entity__c from Comprehensive_Arrangement__c where id=:asrid];
+             return comprec;
+        }
+        return comprec;
+       
+        
+    }
+
+}
+
+Controller test:+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+@isTest
+public class SettlementSBIArrangementControllerTest {
+    static testmethod  void insertasr(){
+        Legal_Entity__c le= new Legal_Entity__c();
+        le.Name='SumatiGroup';
+        insert le;
+          Id accrectypeid = Schema.SObjectType.account.getRecordTypeInfosByName().get('Practice Account').getRecordTypeId();
+         //Inserting sample account records
+        Account ac=new Account();
+        ac.RecordTypeId=accrectypeid;
+        ac.Name='DaVita Teammate Account';
+        ac.BillingCity='hyd';
+        ac.BillingPostalCode = '00000';
+        ac.Type='Nephrology';
+        insert ac;
+         Id settlerectypeid = Schema.SObjectType.Comprehensive_Arrangement__c.getRecordTypeInfosByName().get('Settlements').getRecordTypeId();
+        Comprehensive_Arrangement__c asr=new Comprehensive_Arrangement__c();
+        asr.RecordTypeId=settlerectypeid;
+      asr.Business_unit__c='NPS';
+        asr.Physician_Group1__c=ac.id;
+        asr.NPS_Legal_Entity__c=le.id;
+        asr.Reference_Name__c='insertasr';
+        insert asr;
+       SettlementSBIArrangementController.GetRecorddetails(asr.Id);
+        System.assertEquals(SettlementSBIArrangementController.comprec.Physician_Group1__c,asr.Physician_Group1__c);
+        SettlementSBIArrangementController.GetRecordTypedetails(asr.Id);
+        System.assertEquals(SettlementSBIArrangementController.comprec.RecordTypeId,asr.RecordTypeId);
+     
+    } 
+
+}

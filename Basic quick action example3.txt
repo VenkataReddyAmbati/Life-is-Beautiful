@@ -1,0 +1,176 @@
+Example-----2
+//the below code is to keep the quickaction populate layout for milli sec and call the standard layout:
+Component:
+
+
+<aura:component implements="force:lightningQuickActionWithoutHeader,flexipage:availableForRecordHome,force:hasRecordId" access="global" controller="BRPSActioncontroller" >
+  <div class="title slds-text-heading--medium"><center>New BR/PS</center></div>
+    <hr/>
+ <aura:handler name ="init" value ="{!this}" action = "{!c.init}" />
+</aura:component>
+
+
+
+Javascript:+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+({
+    init : function(component, event, helper) {
+        
+       //   var dismissActionPanel = $A.get("e.force:closeQuickAction");
+        //  dismissActionPanel.fire();
+        window.setTimeout(
+            $A.getCallback(function() {
+                $A.get("e.force:closeQuickAction").fire();
+                
+            }),1000
+        );
+        var rectypeid;
+        var action1=component.get('c.GetRecordTypedetails');
+        action1.setParams({
+            "SBIarrid" : component.get('v.recordId')
+        }); 
+        action1.setCallback(this, function(response){
+            var state1 = response.getState();
+            if (state1 === "SUCCESS") {
+                rectypeid= response.getReturnValue().toString();  
+            }
+        });
+        
+        $A.enqueueAction(action1);      
+        
+        var action=component.get('c.GetRecorddetails');
+        action.setParams({
+            "SBIarrid" : component.get('v.recordId')
+        });
+        action.setCallback(this, function(response){
+            var state = response.getState();
+            if (state === "SUCCESS") {
+                
+                var createRecordEvent = $A.get("e.force:createRecord");
+                var bunit;
+               if(response.getReturnValue()['Business_unit_Front__c'] != undefined){
+                    bunit=response.getReturnValue()['Business_unit_Front__c'].toString();
+                }
+                else{
+                    bunit = undefined ;
+                }
+               
+               // alert('Physician_Name'+Physician_Name);
+                createRecordEvent.setParams({
+                    "entityApiName": "BR_PS__c",
+                    "recordTypeId" : rectypeid,
+                    "defaultFieldValues": {
+                        'SBIArrangement__c' : component.get('v.recordId'),
+                        'Business_unit__c' : bunit ,    
+                   }
+                    
+                    
+                });
+                createRecordEvent.fire();
+            }
+            
+        });
+        $A.enqueueAction(action);
+        
+        
+    }
+    
+})
+
+Apex controller:+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+public class BRPSActioncontroller {
+ public static SBI_Arrangement__c sbiiarrrec;
+    public static ID Lease_RecordTypeId;
+    public static ID PEA_RecordTypeId;
+  
+      @AuraEnabled
+    public static string GetRecordTypedetails(string SBIarrid){
+        sbiiarrrec=[select id,name,RecordType.name,RecordTypeId from SBI_Arrangement__c where id=:SBIarrid]; 
+       
+        if(sbiiarrrec.RecordType.name=='Lease'){
+             Lease_RecordTypeId = Schema.SObjectType.BR_PS__c.getRecordTypeInfosByName().get('Lease').getRecordTypeId();
+             return Lease_RecordTypeId;
+        }
+        else if(sbiiarrrec.RecordType.name=='PEA'){
+             PEA_RecordTypeId = Schema.SObjectType.BR_PS__c.getRecordTypeInfosByName().get('PEA').getRecordTypeId();
+             return PEA_RecordTypeId;
+        }
+        
+        return null;
+        
+    }
+     @AuraEnabled
+    public static SBI_Arrangement__c GetRecorddetails(string SBIarrid){
+       if(SBIarrid !=NULL){
+         sbiiarrrec=[select id,name,Business_unit_Front__c from SBI_Arrangement__c where id=:SBIarrid];
+             return sbiiarrrec;
+        }
+        return sbiiarrrec;
+       
+        
+    }
+}
+
+
+Controller test:+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+@isTest
+public class BRPSActioncontrollerTest {
+static testmethod  void insertasr(){
+        Legal_Entity__c le= new Legal_Entity__c();
+        le.Name='SumatiGroup';
+        insert le;
+          Id accrectypeid = Schema.SObjectType.account.getRecordTypeInfosByName().get('Practice Account').getRecordTypeId();
+         //Inserting sample account records
+        Account ac=new Account();
+        ac.RecordTypeId=accrectypeid;
+        ac.Name='DaVita Teammate Account';
+        ac.BillingCity='hyd';
+        ac.BillingPostalCode = '00000';
+        ac.Type='Nephrology';
+        insert ac;
+        
+        Id phyrectypeid = Schema.SObjectType.contact.getRecordTypeInfosByName().get('Physician').getRecordTypeId(); 
+        //inserting contact
+        Contact co1=new Contact();
+        co1.firstname='Bret';
+        co1.LastName='Tate';
+        co1.AccountId=ac.Id;
+        co1.Email='venkatareddy.a@example.com';
+        co1.Alias__c='erica';
+        co1.Cost_Center__c='USA';
+        co1.Teammate_ID__c='404456';
+        co1.User_Record__c=userinfo.getuserid();
+        co1.RecordTypeId=phyrectypeid;
+        co1.NPI__c='0123456789';
+        insert co1;
+        
+        
+          Id Leaserectypeid = Schema.SObjectType.SBI_Arrangement__c.getRecordTypeInfosByName().get('Lease').getRecordTypeId();
+          Id PEArectypeid = Schema.SObjectType.SBI_Arrangement__c.getRecordTypeInfosByName().get('PEA').getRecordTypeId();
+       
+        
+      
+      SBI_Arrangement__c asr1=new SBI_Arrangement__c();
+        asr1.RecordTypeId=Leaserectypeid;
+      asr1.Business_unit__c='NPS';
+         asr1.Reference_Name__c='insertasr1';
+        insert asr1;
+    
+        SBI_Arrangement__c asr2=new SBI_Arrangement__c();
+        asr2.RecordTypeId=PEArectypeid;
+      asr2.Business_unit__c='NPS';
+       asr2.Reference_Name__c='insertasr1';
+        insert asr2;
+        BRPSActioncontroller.GetRecorddetails(asr1.Id);
+        BRPSActioncontroller.GetRecorddetails(asr2.Id);
+       BRPSActioncontroller.GetRecordTypedetails(asr1.Id);
+        BRPSActioncontroller.GetRecordTypedetails(asr2.Id);
+        
+     
+    } 
+
+}
