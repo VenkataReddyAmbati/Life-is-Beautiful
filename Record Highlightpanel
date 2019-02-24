@@ -1,1 +1,50 @@
 
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+	<div class="slds-page-header slds-page-header_record-home">
+<div class="slds-page-header__row">
+<div class="slds-page-header__col-title">
+<div class="slds-media">
+<div class="slds-media__figure">
+<span class="slds-icon_container slds-icon-standard-opportunity">
+<lightning:icon iconName="custom:custom44" alternativeText="Arrangement Summary" />
+</span>
+</div>
+<div class="slds-media__body">
+<div class="slds-page-header__name">
+<div class="slds-page-header__name-title">
+<h1>
+<span>Arrangement Summary</span>
+<span class="slds-page-header__title slds-truncate" title="Acme - 1,200 Widgets">{!v.asrrecord.Name}</span>
+</h1>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="slds-page-header__col-actions">
+<div class="slds-page-header__controls">
+<div class="slds-page-header__control">
+
+</div>
+<div class="slds-page-header__control">
+<ul class="slds-button-group-list">
+<li>
+<lightning:button label="Edit" onclick="{! c.editRecord }"/>
+</li>
+<li>
+<lightning:button label="Delete" onclick="{! c.handleDeleteRecord}"/>
+</li>
+
+<li>
+<lightning:button label="New SBI Arrangement" title="New SBI Arrangement"  onclick="{! c.openModel }"/>
+</li>
+    <li>
+<lightning:button label="Printable View" title="Printable View" onclick="{! c.showPrintPreview }"/>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</aura:component>
